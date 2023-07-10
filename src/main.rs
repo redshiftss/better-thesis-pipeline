@@ -9,7 +9,9 @@ const FUFF_WORDLIST: &str = "~/pkg/SecLists/Discovery/Web-Content/directory-list
 
 fn main() {
     start_falco();
-    process_batch(1);
+    for i in 0..400 {
+        process_batch(i);
+    }
 }
 
 fn process_batch(pagenum: u32) {
