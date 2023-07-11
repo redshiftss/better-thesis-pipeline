@@ -9,7 +9,7 @@ const FUFF_WORDLIST: &str = "~/pkg/SecLists/Discovery/Web-Content/directory-list
 
 fn main() {
     start_falco();
-    for i in 1..3 {
+    for i in 1..500 {
         process_batch(i);
     }
 }
@@ -140,7 +140,7 @@ fn start_ffuf(image: MyImage) {
                 "ffuf -w {} -u {}/FUZZ -o {} -of json",
                 FUFF_WORDLIST, image.ips[i], filename
             ))
-            .status()
+            .output()
             .expect("failed to fuzz IP address");
     }
 }
@@ -163,7 +163,7 @@ fn start_falco() {
                             --modern-bpf \
                             -c falco/falco.yaml"
             ))
-            .status()
+            .output()
             .expect("Failed to start falco");
     });
 }
@@ -179,7 +179,7 @@ fn start_wapiti(image: MyImage) {
                 "wapiti -u http://{} -f json -o {}",
                 image.ips[i], filename
             ))
-            .status()
+            .output()
             .expect("failed to run wapiti on the image");
     }
 }
