@@ -42,11 +42,11 @@ fn cleanup(pagenum: u32) {
         .arg("docker image prune -a -f")
         .output()
         .expect("failed to clean up");
-    Command::new("bash")
-        .arg("-c")
-        .arg("docker volume prune -a -f")
-        .output()
-        .expect("failed to clean up");
+    // Command::new("bash")
+    //     .arg("-c")
+    //     .arg("docker volume prune -a -f")
+    //     .output()
+    //     .expect("failed to clean up");
 }
 
 fn process_image(image: MyImage) {
