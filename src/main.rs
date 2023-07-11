@@ -9,7 +9,7 @@ const FUFF_WORDLIST: &str = "~/pkg/SecLists/Discovery/Web-Content/directory-list
 
 fn main() {
     start_falco();
-    for i in 1..400 {
+    for i in 1..3 {
         process_batch(i);
     }
 }
@@ -30,17 +30,17 @@ fn cleanup(pagenum: u32) {
     Command::new("bash")
         .arg("-c")
         .arg("docker stop $(docker ps -a -q)")
-        .status()
+        .output()
         .expect("failed to clean up");
     Command::new("bash")
         .arg("-c")
         .arg("docker rm $(docker ps -a -q)")
-        .status()
+        .output()
         .expect("failed to clean up");
     Command::new("bash")
         .arg("-c")
         .arg("docker image prune -a -f")
-        .status()
+        .output()
         .expect("failed to clean up");
 }
 
@@ -83,7 +83,7 @@ fn aggregate_and_pull_images(pagenum: u32) -> Vec<MyImage> {
             .output()
             .expect("failed to pull image");
 
-        let output = Command::new("bash")
+        Command::new("bash")
             .arg("-c")
             .arg(format!("docker run -d -P {}", image))
             .output()
@@ -140,7 +140,7 @@ fn start_ffuf(image: MyImage) {
                 "ffuf -w {} -u {}/FUZZ -o {} -of json",
                 FUFF_WORDLIST, image.ips[i], filename
             ))
-            .output()
+            .status()
             .expect("failed to fuzz IP address");
     }
 }
@@ -150,7 +150,7 @@ fn start_falco() {
     // let filename = format!("/falco/falco_page_{}.json", pagenum);
     println!("starting falco...");
     thread::spawn(|| {
-        let f = Command::new("bash")
+        Command::new("bash")
             .arg("-c")
             .arg(format!(
                 "docker run --rm \
@@ -163,9 +163,8 @@ fn start_falco() {
                             --modern-bpf \
                             -c falco/falco.yaml"
             ))
-            .output()
-            .unwrap();
-        // io::stdout().write_all(&f.stdout).unwrap();
+            .status()
+            .expect("Failed to start falco");
     });
 }
 
@@ -173,15 +172,14 @@ fn start_wapiti(image: MyImage) {
     for i in 0..image.ips.len() {
         let filename = format!("wapiti/{}_{}.json", image.name, i);
         println!("running wapiti...");
-        let f = Command::new("bash")
+        Command::new("bash")
             .arg("-c")
             //fuzz every IP associated with this address and output results to json
             .arg(format!(
                 "wapiti -u http://{} -f json -o {}",
                 image.ips[i], filename
             ))
-            .output()
+            .status()
             .expect("failed to run wapiti on the image");
-        io::stdout().write_all(&f.stdout).unwrap();
     }
 }
