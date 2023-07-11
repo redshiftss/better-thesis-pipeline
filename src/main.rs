@@ -16,6 +16,7 @@ fn main() {
 }
 
 fn process_batch(pagenum: u32) {
+    cleanup();
     let imgs : Vec<MyImage> = aggregate_and_pull_images(pagenum)
         .into_iter()
         .filter(|x| x.name != "falcosecurity/falco-no-driver:latest")
@@ -24,10 +25,9 @@ fn process_batch(pagenum: u32) {
     for img in imgs {
         process_image(img);
     }
-    cleanup(pagenum);
 }
 
-fn cleanup(pagenum: u32) {
+fn cleanup() {
     Command::new("bash")
         .arg("-c")
         .arg("docker stop $(docker ps -a -q)")
@@ -83,6 +83,7 @@ fn aggregate_and_pull_images(pagenum: u32) -> Vec<MyImage> {
     }
 
     for image in res {
+        println!("starting image: {}", image);
         Command::new("bash")
             .arg("-c")
             .arg(format!("docker pull {}", image))
