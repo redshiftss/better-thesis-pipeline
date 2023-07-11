@@ -9,7 +9,7 @@ const FUFF_WORDLIST: &str = "~/pkg/SecLists/Discovery/Web-Content/directory-list
 
 fn main() {
     start_falco();
-    for i in 1..500 {
+    for i in 50..500 {
         println!("processing page {}", i);
         process_batch(i);
     }
@@ -87,14 +87,15 @@ fn aggregate_and_pull_images(pagenum: u32) -> Vec<MyImage> {
         Command::new("bash")
             .arg("-c")
             .arg(format!("docker pull {}", image))
-            .output()
-            .expect("failed to pull image");
+            .status()
+            .unwrap();
 
         Command::new("bash")
             .arg("-c")
             .arg(format!("docker run -d -P {}", image))
-            .output()
-            .expect("failed to run image");
+            .status()
+            .unwrap();
+        
         println!("finished pulling images...");
     }
 
