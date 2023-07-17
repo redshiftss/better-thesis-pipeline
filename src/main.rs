@@ -184,7 +184,7 @@ fn start_wapiti(image: MyImage) {
             .arg("-c")
             //fuzz every IP associated with this address and output results to json
             .arg(format!(
-                "wapiti -u http://{} -f json -o {}",
+                "wapiti -u http://{} --flush-session -f json -o {}",
                 image.ips[i], filename
             ))
             .output()
