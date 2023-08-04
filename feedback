@@ -1,0 +1,9 @@
+- try to see how long vulnerable images stay in the system
+- graph for all the images
+- check how many are reported by more than one tool
+- correlate wordlist/number of packets with vulns found
+- include capitain hook in slides
+- check vulns that are already there
+- complete isolation 
+- UDP port analysis
+- clarify reported date in chart

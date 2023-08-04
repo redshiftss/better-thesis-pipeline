@@ -1,8 +1,9 @@
+use core::num;
 use std::{
     io::{self, Write},
     process::Command,
     thread,
-    time::Duration,
+    time::Duration, ops::Deref, fs::OpenOptions,
 };
 
 const FUFF_WORDLIST: &str = "~/pkg/SecLists/Discovery/Web-Content/directory-list-2.3-medium.txt";
@@ -17,7 +18,7 @@ fn main() {
 
 fn process_batch(pagenum: u32) {
     cleanup();
-    let imgs : Vec<MyImage> = aggregate_and_pull_images(pagenum)
+    let imgs : Vec<MyImage> = just_aggr_images(pagenum)
         .into_iter()
         .filter(|x| x.name != "falcosecurity/falco-no-driver:latest")
         .collect();
@@ -51,8 +52,47 @@ fn cleanup() {
 }
 
 fn process_image(image: MyImage) {
-    start_ffuf(image.clone());
-    start_wapiti(image);
+    let imagename = if image.name.contains("/") {
+         image.name
+    } else {
+         format!("library/{}", &image.name)
+    };
+
+    let body: serde_json::Value = ureq::get(
+        &format!("https://hub.docker.com/v2/repositories/{}/tags/?page_size=25&page=1&name=&ordering=", imagename)
+    )
+    .set("Search-Version", "v3")
+    .call()
+    .unwrap()
+    .into_json()
+    .unwrap();
+
+    let last_updated = &body["results"].as_array().unwrap()[0]["last_updated"];
+
+    let num_vulnerabilities = 0;
+
+    let body: serde_json::Value = ureq::get(
+        &format!("https://hub.docker.com/v2/repositories/{}", imagename)
+    )
+    .set("Search-Version", "v3")
+    .call()
+    .unwrap()
+    .into_json()
+    .unwrap();
+
+
+    let num_pulls = &body["pull_count"];
+    let res = format!("{}, {}, {}, {}", imagename, last_updated, num_pulls, num_vulnerabilities);
+    
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open("res-generation-2.csv")
+        .unwrap();
+
+    if let Err(e) = writeln!(file, "{}", res) {
+        eprintln!("Couldn't write to file: {}", e);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -135,6 +175,36 @@ fn aggregate_and_pull_images(pagenum: u32) -> Vec<MyImage> {
         }
     }
     return imgs;
+}
+
+
+fn just_aggr_images(pagenum: u32) -> Vec<MyImage> {
+    // ---- make the HTTP call to DockerHub ------
+
+    let body: serde_json::Value = ureq::get(&format!(
+        "https://hub.docker.com/api/content/v1/products/search?page={}&page_size=5&q=",
+        pagenum
+    ))
+    .set("Search-Version", "v3")
+    .call()
+    .unwrap()
+    .into_json()
+    .unwrap();
+
+    let mut res = Vec::new();
+
+    // ---- extract image names from DockerHub and spin up the containers ------
+
+    for v in body["summaries"].as_array().unwrap() {
+        res.push(format!("{}", v["name"].as_str().unwrap().clone()))
+    }
+
+    let mut imgs = Vec::new();
+    for img in res {
+        imgs.push(MyImage{name: img, ips: Vec::new()});
+    }
+    imgs
+
 }
 
 fn start_ffuf(image: MyImage) {
